@@ -1,0 +1,12 @@
+{
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "particle": "magiclibrary:block/apprentice_library_side",
+    "up": "magiclibrary:block/apprentice_library_top",
+    "down": "magiclibrary:block/library_bottom",
+    "north": "magiclibrary:block/apprentice_library_front",
+    "south": "magiclibrary:block/apprentice_library_back",
+    "east": "magiclibrary:block/apprentice_library_side",
+    "west": "magiclibrary:block/apprentice_library_side"
+  }
+}

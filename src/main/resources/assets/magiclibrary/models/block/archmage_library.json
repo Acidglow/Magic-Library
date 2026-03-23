@@ -1,0 +1,12 @@
+{
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "particle": "magiclibrary:block/archmage_library_side",
+    "up": "magiclibrary:block/archmage_library_top",
+    "down": "magiclibrary:block/library_bottom",
+    "north": "magiclibrary:block/archmage_library_front",
+    "south": "magiclibrary:block/archmage_library_back",
+    "east": "magiclibrary:block/archmage_library_side",
+    "west": "magiclibrary:block/archmage_library_side"
+  }
+}

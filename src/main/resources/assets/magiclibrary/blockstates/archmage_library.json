@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "magiclibrary:block/archmage_library" },
+    "facing=east": { "model": "magiclibrary:block/archmage_library", "y": 90 },
+    "facing=south": { "model": "magiclibrary:block/archmage_library", "y": 180 },
+    "facing=west": { "model": "magiclibrary:block/archmage_library", "y": 270 }
+  }
+}

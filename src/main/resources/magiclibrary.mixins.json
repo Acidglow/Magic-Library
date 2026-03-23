@@ -1,0 +1,15 @@
+{
+  "required": true,
+  "package": "com.acidglow.magiclibrary.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "EnchantmentMixin",
+    "EnchantmentHelperMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "magiclibrary:block/apprentice_library" },
+    "facing=east": { "model": "magiclibrary:block/apprentice_library", "y": 90 },
+    "facing=south": { "model": "magiclibrary:block/apprentice_library", "y": 180 },
+    "facing=west": { "model": "magiclibrary:block/apprentice_library", "y": 270 }
+  }
+}

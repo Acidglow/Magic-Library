@@ -1,0 +1,5 @@
+[amplification]
+softCap = 255
+xpBase = 10
+xpStep = 15
+meCost = 100000

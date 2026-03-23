@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "B": "minecraft:bookshelf",
+    "E": "minecraft:enchanted_book",
+    "M": "minecraft:emerald",
+    "T": "minecraft:enchanting_table"
+  },
+  "pattern": [
+    "BEB",
+    "MTM",
+    "BEB"
+  ],
+  "result": {
+    "count": 1,
+    "id": "magiclibrary:apprentice_library"
+  }
+}
