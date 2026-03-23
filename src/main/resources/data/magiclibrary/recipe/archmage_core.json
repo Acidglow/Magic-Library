@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "A": "minecraft:amethyst_shard",
+    "D": "minecraft:diamond",
+    "E": "minecraft:ender_eye",
+    "G": "minecraft:glowstone_dust"
+  },
+  "pattern": [
+    "ADA",
+    "GEG",
+    "ADA"
+  ],
+  "result": {
+    "count": 1,
+    "id": "magiclibrary:archmage_core"
+  }
+}

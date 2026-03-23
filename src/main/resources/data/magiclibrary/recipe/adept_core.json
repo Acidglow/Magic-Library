@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "A": "minecraft:amethyst_shard",
+    "B": "minecraft:blaze_powder",
+    "L": "minecraft:lapis_lazuli",
+    "R": "minecraft:redstone"
+  },
+  "pattern": [
+    "ALA",
+    "RBR",
+    "ALA"
+  ],
+  "result": {
+    "count": 1,
+    "id": "magiclibrary:adept_core"
+  }
+}

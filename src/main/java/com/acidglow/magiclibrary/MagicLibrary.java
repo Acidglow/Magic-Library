@@ -34,13 +34,18 @@ public class MagicLibrary {
     }
 
     private void addCreativeContents(BuildCreativeModeTabContentsEvent event) {
-        if (event.getTabKey() == CreativeModeTabs.FUNCTIONAL_BLOCKS) {
+        if (CreativeModeTabs.FUNCTIONAL_BLOCKS.equals(event.getTabKey())) {
             event.accept(MLBlocks.APPRENTICE_LIBRARY_ITEM);
             event.accept(MLBlocks.ADEPT_LIBRARY_ITEM);
             event.accept(MLBlocks.ARCHMAGE_LIBRARY_ITEM);
-            event.accept(MLBlocks.ADEPT_LIBRARY_UPGRADE);
-            event.accept(MLBlocks.ARCHMAGE_LIBRARY_UPGRADE);
+            event.accept(MLBlocks.ADEPT_CORE);
+            event.accept(MLBlocks.ARCHMAGE_CORE);
             event.accept(MLBlocks.TOME_OF_AMPLIFICATION);
+        }
+
+        if (CreativeModeTabs.INGREDIENTS.equals(event.getTabKey())) {
+            event.accept(MLBlocks.ADEPT_CORE);
+            event.accept(MLBlocks.ARCHMAGE_CORE);
         }
     }
 

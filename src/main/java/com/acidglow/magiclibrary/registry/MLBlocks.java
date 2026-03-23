@@ -42,22 +42,22 @@ public final class MLBlocks {
         TomeOfAmplificationItem::new,
         () -> new Item.Properties().stacksTo(1)
     );
-    public static final DeferredItem<LibraryTierUpgradeItem> ADEPT_LIBRARY_UPGRADE = ITEMS.registerItem(
-        "adept_library_upgrade",
+    public static final DeferredItem<LibraryTierUpgradeItem> ADEPT_CORE = ITEMS.registerItem(
+        "adept_core",
         properties -> new LibraryTierUpgradeItem(
             MagicLibraryTier.TIER1,
             ADEPT_LIBRARY,
-            "item.magiclibrary.adept_library_upgrade.desc",
+            "item.magiclibrary.adept_core.desc",
             properties
         ),
         Item.Properties::new
     );
-    public static final DeferredItem<LibraryTierUpgradeItem> ARCHMAGE_LIBRARY_UPGRADE = ITEMS.registerItem(
-        "archmage_library_upgrade",
+    public static final DeferredItem<LibraryTierUpgradeItem> ARCHMAGE_CORE = ITEMS.registerItem(
+        "archmage_core",
         properties -> new LibraryTierUpgradeItem(
             MagicLibraryTier.TIER2,
             ARCHMAGE_LIBRARY,
-            "item.magiclibrary.archmage_library_upgrade.desc",
+            "item.magiclibrary.archmage_core.desc",
             properties
         ),
         Item.Properties::new

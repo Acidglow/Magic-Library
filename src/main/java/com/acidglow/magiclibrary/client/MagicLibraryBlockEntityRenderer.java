@@ -84,7 +84,7 @@ public final class MagicLibraryBlockEntityRenderer
     private static final FloatingDisplayProfile TRIDENT_DISPLAY_PROFILE = new FloatingDisplayProfile(0.85D, 2.6D, 0.85D, 0.0F, 0.0F, 0.0F, 0.0F, 0.7F);
     private static final FloatingDisplayProfile SHIELD_DISPLAY_PROFILE = new FloatingDisplayProfile(0.5D, 1.55D, 0.5D, 0.0F, 0.0F, 0.0F, 45.0F, 0.7F);
     private static final FloatingDisplayProfile SHEARS_DISPLAY_PROFILE = new FloatingDisplayProfile(0.5D, 1.55D, 0.5D, 0.0F, 0.0F, 0.0F, 45.0F, 0.7F);
-    private static final FloatingDisplayProfile HORSE_ARMOR_DISPLAY_PROFILE = new FloatingDisplayProfile(0.5D, 1.55D, 0.5D, 0.0F, 0.0F, 0.0F, 45.0F, 0.7F);
+    private static final FloatingDisplayProfile HORSE_ARMOR_DISPLAY_PROFILE = new FloatingDisplayProfile(0.5D, 1.55D, 0.5D, 0.0F, 0.0F, 0.0F, 0.0F, 0.7F);
     private static final FloatingDisplayProfile BOW_DISPLAY_PROFILE = new FloatingDisplayProfile(0.5D, 1.55D, 0.5D, 0.0F, 0.0F, 0.0F, 45.0F, 0.7F);
     private static final FloatingDisplayProfile CROSSBOW_DISPLAY_PROFILE = new FloatingDisplayProfile(0.5D, 1.55D, 0.5D, 0.0F, 0.0F, 0.0F, 45.0F, 0.7F);
     private static final FloatingDisplayProfile ARMOR_DISPLAY_PROFILE = new FloatingDisplayProfile(0.5D, 1.55D, 0.5D, 0.0F, 0.0F, 0.0F, 0.0F, 0.7F);
