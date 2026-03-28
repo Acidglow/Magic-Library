@@ -78,6 +78,7 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
         Codec.unboundedMap(Identifier.CODEC, Codec.INT);
     private static final String TAG_PENDING_OUTPUT_MODE = "PendingOutputMode";
     private static final String TAG_PENDING_OUTPUT_PREVIEW = "PendingOutputPreview";
+    private static final String TAG_PENDING_OUTPUT_CLAIMED = "PendingOutputClaimed";
     private static final String TAG_TIER3_PREVIEW_USES_VIRTUAL_BOOK_BASE = "Tier3PreviewUsesVirtualBookBase";
 
     private MagicLibraryTier tier;
@@ -146,6 +147,7 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
     private long currentME;
     private PendingOutputMode pendingOutputMode = PendingOutputMode.NONE;
     private boolean pendingOutputPreview;
+    private boolean pendingOutputClaimed;
     private int upkeepRemainderTenths;
     private ItemStack tier3OutputEnchantBase = ItemStack.EMPTY;
     private boolean tier3PreviewUsesVirtualBookBase;
@@ -350,6 +352,7 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
     public boolean isPendingOutputPreview() {
         return this.pendingOutputPreview
             && this.pendingOutputMode == PendingOutputMode.ENCHANTING
+            && !this.pendingOutputClaimed
             && !this.preparedEnchantLevels.isEmpty()
             && !this.items.get(SLOT_OUTPUT).isEmpty();
     }
@@ -373,7 +376,7 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
             return true;
         }
 
-        return claimPendingEnchantingOutput(player);
+        return canClaimPendingEnchantingOutput(player);
     }
 
     public boolean canTakeOutput(Player player) {
@@ -402,11 +405,31 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
             return false;
         }
 
+        if (this.pendingOutputClaimed) {
+            return true;
+        }
+
         return canClaimPendingEnchantingOutput(player);
     }
 
     public void onOutputTaken(Player player, ItemStack takenStack) {
-        if (player.level().isClientSide() || !validatePendingOutputState(true)) {
+        if (player.level().isClientSide()) {
+            return;
+        }
+
+        if (this.pendingOutputMode == PendingOutputMode.ENCHANTING) {
+            finalizePendingEnchantingOutput(player);
+            markChangedAndSync();
+            return;
+        }
+
+        if (!validatePendingOutputState(true)) {
+            return;
+        }
+
+        if (this.pendingOutputMode == PendingOutputMode.ENCHANTING && this.pendingOutputClaimed) {
+            clearPendingOutputStateAfterClaim();
+            markChangedAndSync();
             return;
         }
 
@@ -582,13 +605,6 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
     }
 
     private boolean tryProcessExtraction() {
-        if (this.pendingOutputMode == PendingOutputMode.ENCHANTING || !this.preparedEnchantLevels.isEmpty()) {
-            return false;
-        }
-        if (!this.items.get(SLOT_OUTPUT).isEmpty()) {
-            return false;
-        }
-
         ItemStack input = this.items.get(SLOT_EXTRACT);
         if (input.isEmpty()) {
             return false;
@@ -631,11 +647,9 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
             }
             this.dangerousExtractionBlocked = shouldBlockDangerousExtraction(this.items.get(SLOT_EXTRACT));
             this.dangerousExtractionConfirmed = false;
-            this.pendingOutputMode = PendingOutputMode.NONE;
-            this.pendingOutputPreview = false;
-            this.tier3OutputEnchantBase = ItemStack.EMPTY;
-            this.outputOriginalEnchantLevels.clear();
-            this.tier3PreviewUsesVirtualBookBase = false;
+            if (this.items.get(SLOT_OUTPUT).isEmpty()) {
+                clearPendingOutputStateAfterClaim();
+            }
             markChangedAndSync();
             return true;
         }
@@ -646,12 +660,9 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
         }
         this.dangerousExtractionBlocked = shouldBlockDangerousExtraction(this.items.get(SLOT_EXTRACT));
         this.dangerousExtractionConfirmed = false;
-        this.items.set(SLOT_OUTPUT, ItemStack.EMPTY);
-        this.pendingOutputMode = PendingOutputMode.NONE;
-        this.pendingOutputPreview = false;
-        this.tier3OutputEnchantBase = ItemStack.EMPTY;
-        this.outputOriginalEnchantLevels.clear();
-        this.tier3PreviewUsesVirtualBookBase = false;
+        if (this.items.get(SLOT_OUTPUT).isEmpty()) {
+            clearPendingOutputStateAfterClaim();
+        }
         markChangedAndSync();
         return true;
     }
@@ -671,11 +682,8 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
             clearPreparedSelectionsAndPreview();
             return true;
         }
-        if (this.tier == MagicLibraryTier.TIER3 && this.pendingOutputMode != PendingOutputMode.ENCHANTING) {
-            this.tier3PreviewUsesVirtualBookBase = isUsingVirtualTier3BookPreviewBase();
-            this.tier3OutputEnchantBase = createEnchantingPreviewBaseStack(input);
-            this.outputOriginalEnchantLevels.clear();
-            this.outputOriginalEnchantLevels.putAll(getItemEnchantmentLevels(this.tier3OutputEnchantBase));
+        if (this.pendingOutputMode != PendingOutputMode.ENCHANTING) {
+            capturePendingEnchantingBase(input);
             input = this.tier3OutputEnchantBase.copyWithCount(1);
         }
         PreparedCosts costs = calculatePreparedCosts(input, this.preparedEnchantLevels);
@@ -693,12 +701,14 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
             this.items.set(SLOT_OUTPUT, preview);
             this.pendingOutputMode = PendingOutputMode.ENCHANTING;
             this.pendingOutputPreview = true;
+            this.pendingOutputClaimed = false;
             markChangedAndSync();
             return true;
         }
 
-        if (!this.pendingOutputPreview) {
+        if (!this.pendingOutputPreview || this.pendingOutputClaimed) {
             this.pendingOutputPreview = true;
+            this.pendingOutputClaimed = false;
             markChangedAndSync();
             return true;
         }
@@ -748,6 +758,10 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
             this.pendingOutputPreview = false;
             changed = true;
         }
+        if (this.pendingOutputClaimed) {
+            this.pendingOutputClaimed = false;
+            changed = true;
+        }
         if (!this.tier3OutputEnchantBase.isEmpty()) {
             this.tier3OutputEnchantBase = ItemStack.EMPTY;
             this.outputOriginalEnchantLevels.clear();
@@ -773,6 +787,7 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
         }
         this.pendingOutputMode = PendingOutputMode.NONE;
         this.pendingOutputPreview = false;
+        this.pendingOutputClaimed = false;
         this.tier3OutputEnchantBase = ItemStack.EMPTY;
         this.outputOriginalEnchantLevels.clear();
         this.tier3PreviewUsesVirtualBookBase = false;
@@ -791,6 +806,17 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
         }
         ItemStack extract = this.items.get(SLOT_EXTRACT);
         return extract.isEmpty() || isBookLike(extract);
+    }
+
+    private void capturePendingEnchantingBase(ItemStack input) {
+        capturePendingEnchantingBase(input, this.tier != MagicLibraryTier.TIER3 || isUsingVirtualTier3BookPreviewBase());
+    }
+
+    private void capturePendingEnchantingBase(ItemStack input, boolean usesVirtualBookBase) {
+        this.tier3PreviewUsesVirtualBookBase = usesVirtualBookBase;
+        this.tier3OutputEnchantBase = createEnchantingPreviewBaseStack(input);
+        this.outputOriginalEnchantLevels.clear();
+        this.outputOriginalEnchantLevels.putAll(getItemEnchantmentLevels(this.tier3OutputEnchantBase));
     }
 
     private boolean validatePendingOutputState(boolean sync) {
@@ -816,6 +842,7 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
             this.tier3OutputEnchantBase = ItemStack.EMPTY;
             if (this.pendingOutputMode != PendingOutputMode.EXTRACTION) {
                 this.pendingOutputPreview = false;
+                this.pendingOutputClaimed = false;
                 this.outputOriginalEnchantLevels.clear();
                 this.tier3PreviewUsesVirtualBookBase = false;
             }
@@ -826,6 +853,7 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
             }
             if (this.pendingOutputMode != PendingOutputMode.EXTRACTION) {
                 this.pendingOutputPreview = false;
+                this.pendingOutputClaimed = false;
                 this.tier3PreviewUsesVirtualBookBase = false;
             }
         }
@@ -858,10 +886,8 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
         }
 
         this.pendingOutputMode = PendingOutputMode.ENCHANTING;
-        this.pendingOutputPreview = true;
-        this.tier3OutputEnchantBase = base.copyWithCount(1);
-        this.outputOriginalEnchantLevels.clear();
-        this.outputOriginalEnchantLevels.putAll(getItemEnchantmentLevels(base));
+        this.pendingOutputPreview = !this.pendingOutputClaimed;
+        capturePendingEnchantingBase(base, this.tier != MagicLibraryTier.TIER3 || this.tier3PreviewUsesVirtualBookBase);
         return true;
     }
 
@@ -910,6 +936,7 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
         this.preparedEnchantLevels.clear();
         this.pendingOutputMode = PendingOutputMode.NONE;
         this.pendingOutputPreview = false;
+        this.pendingOutputClaimed = false;
         this.tier3OutputEnchantBase = ItemStack.EMPTY;
         this.outputOriginalEnchantLevels.clear();
         this.tier3PreviewUsesVirtualBookBase = false;
@@ -1031,14 +1058,20 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
     }
 
     private boolean claimPendingEnchantingOutput(Player player) {
+        return canClaimPendingEnchantingOutput(player);
+    }
+
+    private void finalizePendingEnchantingOutput(Player player) {
         if (!canClaimPendingEnchantingOutput(player)) {
-            return false;
+            clearPendingOutputStateAfterClaim();
+            return;
         }
 
         ItemStack input = getEnchantingContextInput();
         PreparedCosts costs = calculatePreparedCosts(input, this.preparedEnchantLevels);
         if (!costs.valid()) {
-            return false;
+            clearPendingOutputStateAfterClaim();
+            return;
         }
 
         for (Map.Entry<Identifier, Long> entry : costs.pointCosts().entrySet()) {
@@ -1046,7 +1079,8 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
             long pointCost = entry.getValue();
             EnchantData data = this.storedEnchantData.get(enchantmentId);
             if (data == null) {
-                return false;
+                clearPendingOutputStateAfterClaim();
+                return;
             }
             this.storedEnchantData.put(enchantmentId, new EnchantData(data.storedPoints() - pointCost, data.maxDiscoveredLevel()));
         }
@@ -1061,14 +1095,13 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
         }
 
         clearPendingOutputStateAfterClaim();
-        markChangedAndSync();
-        return true;
     }
 
     private void clearPendingOutputStateAfterClaim() {
         this.preparedEnchantLevels.clear();
         this.pendingOutputMode = PendingOutputMode.NONE;
         this.pendingOutputPreview = false;
+        this.pendingOutputClaimed = false;
         this.tier3OutputEnchantBase = ItemStack.EMPTY;
         this.outputOriginalEnchantLevels.clear();
         this.tier3PreviewUsesVirtualBookBase = false;
@@ -1194,6 +1227,7 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
             this.preparedEnchantLevels.clear();
             this.pendingOutputMode = PendingOutputMode.NONE;
             this.pendingOutputPreview = false;
+            this.pendingOutputClaimed = false;
         }
 
         this.tier3OutputEnchantBase = ItemStack.EMPTY;
@@ -1234,10 +1268,8 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
         }
 
         this.pendingOutputMode = PendingOutputMode.ENCHANTING;
-        this.pendingOutputPreview = true;
-        this.tier3OutputEnchantBase = base.copyWithCount(1);
-        this.outputOriginalEnchantLevels.clear();
-        this.outputOriginalEnchantLevels.putAll(getItemEnchantmentLevels(base));
+        this.pendingOutputPreview = !this.pendingOutputClaimed;
+        capturePendingEnchantingBase(base, this.tier != MagicLibraryTier.TIER3 || this.tier3PreviewUsesVirtualBookBase);
         return true;
     }
 
@@ -1495,6 +1527,7 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
         output.putBoolean("DangerousExtractionConfirmed", this.dangerousExtractionConfirmed);
         output.putInt(TAG_PENDING_OUTPUT_MODE, this.pendingOutputMode.ordinal());
         output.putBoolean(TAG_PENDING_OUTPUT_PREVIEW, this.pendingOutputPreview);
+        output.putBoolean(TAG_PENDING_OUTPUT_CLAIMED, this.pendingOutputClaimed);
         output.putBoolean(TAG_TIER3_PREVIEW_USES_VIRTUAL_BOOK_BASE, this.tier3PreviewUsesVirtualBookBase);
         ContainerHelper.saveAllItems(output, this.items);
         output.store("StoredEnchantData", STORED_ENCHANTS_CODEC, this.storedEnchantData);
@@ -1515,6 +1548,7 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
             TAG_PENDING_OUTPUT_PREVIEW,
             this.pendingOutputMode == PendingOutputMode.ENCHANTING
         );
+        this.pendingOutputClaimed = input.getBooleanOr(TAG_PENDING_OUTPUT_CLAIMED, false);
         this.tier3PreviewUsesVirtualBookBase = input.getBooleanOr(TAG_TIER3_PREVIEW_USES_VIRTUAL_BOOK_BASE, false);
         ContainerHelper.loadAllItems(input, this.items);
 
