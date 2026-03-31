@@ -188,6 +188,10 @@ After using it, the next Archmage Library opened by that player becomes a fully 
 - Loader: `NeoForge 21.11.38-beta`
 - Java: `21`
 
+## License
+
+Magic Library is licensed under the `MIT` License. See [LICENSE](D:\MC projekter\Magic-Library\LICENSE).
+
 ## Summary
 
 Magic Library turns enchanting into infrastructure instead of loot roulette. You build a library, feed it power, archive enchantments permanently, and grow it from a modest book workshop into an endgame enchantment lab that can manufacture legendary gear.
