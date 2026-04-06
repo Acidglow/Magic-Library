@@ -2,6 +2,7 @@ package com.acidglow.magiclibrary.registry;
 
 import com.acidglow.magiclibrary.MagicLibrary;
 import com.acidglow.magiclibrary.content.item.LibraryTierUpgradeItem;
+import com.acidglow.magiclibrary.content.item.MagicLibraryBlockItem;
 import com.acidglow.magiclibrary.content.item.TomeOfAmplificationItem;
 import com.acidglow.magiclibrary.content.library.MagicLibraryBlock;
 import com.acidglow.magiclibrary.content.library.MagicLibraryTier;
@@ -34,9 +35,21 @@ public final class MLBlocks {
         () -> BlockBehaviour.Properties.of().strength(3.0F).sound(SoundType.WOOD)
     );
 
-    public static final DeferredItem<BlockItem> APPRENTICE_LIBRARY_ITEM = ITEMS.registerSimpleBlockItem(APPRENTICE_LIBRARY);
-    public static final DeferredItem<BlockItem> ADEPT_LIBRARY_ITEM = ITEMS.registerSimpleBlockItem(ADEPT_LIBRARY);
-    public static final DeferredItem<BlockItem> ARCHMAGE_LIBRARY_ITEM = ITEMS.registerSimpleBlockItem(ARCHMAGE_LIBRARY);
+    public static final DeferredItem<BlockItem> APPRENTICE_LIBRARY_ITEM = ITEMS.registerItem(
+        "apprentice_library",
+        properties -> new MagicLibraryBlockItem(APPRENTICE_LIBRARY.get(), properties),
+        Item.Properties::new
+    );
+    public static final DeferredItem<BlockItem> ADEPT_LIBRARY_ITEM = ITEMS.registerItem(
+        "adept_library",
+        properties -> new MagicLibraryBlockItem(ADEPT_LIBRARY.get(), properties),
+        Item.Properties::new
+    );
+    public static final DeferredItem<BlockItem> ARCHMAGE_LIBRARY_ITEM = ITEMS.registerItem(
+        "archmage_library",
+        properties -> new MagicLibraryBlockItem(ARCHMAGE_LIBRARY.get(), properties),
+        Item.Properties::new
+    );
     public static final DeferredItem<TomeOfAmplificationItem> TOME_OF_AMPLIFICATION = ITEMS.registerItem(
         "tome_of_amplification",
         TomeOfAmplificationItem::new,

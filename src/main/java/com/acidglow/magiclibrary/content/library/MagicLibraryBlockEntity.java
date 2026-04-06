@@ -62,9 +62,6 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
     public static final int SLOT_OUTPUT = 2;
     private static final int SLOT_COUNT = 3;
 
-    private static final long REDSTONE_ME = 10_000L;
-    private static final long GLOWSTONE_DUST_ME = 40_000L;
-    private static final long AMETHYST_ME = 100_000L;
     private static final long NETHER_STAR_ME = 100_000_000L;
     private static final long SUPREME_STORED_POINTS = 1_000L;
 
@@ -144,7 +141,8 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
         }
     };
 
-    private long currentME;
+    private long activeFuelME;
+    private long activeFuelMaxME;
     private PendingOutputMode pendingOutputMode = PendingOutputMode.NONE;
     private boolean pendingOutputPreview;
     private boolean pendingOutputClaimed;
@@ -153,6 +151,7 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
     private boolean tier3PreviewUsesVirtualBookBase;
     private boolean dangerousExtractionBlocked;
     private boolean dangerousExtractionConfirmed;
+    private long stowedGameTime = -1L;
 
     public MagicLibraryBlockEntity(BlockPos pos, BlockState blockState) {
         super(MLBlockEntities.MAGIC_LIBRARY.get(), pos, blockState);
@@ -184,11 +183,11 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
     }
 
     public long getCurrentME() {
-        return this.currentME;
+        return MagicLibraryConfig.isUpkeepEnabled() ? this.activeFuelME : 1L;
     }
 
     public long getMaxME() {
-        return MagicLibraryConfig.getCapacity(this.tier);
+        return MagicLibraryConfig.isUpkeepEnabled() ? this.activeFuelMaxME : 1L;
     }
 
     public void applySupremeUpgrade() {
@@ -214,13 +213,16 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
             );
         });
 
-        this.currentME = getMaxME();
+        if (MagicLibraryConfig.isUpkeepEnabled()) {
+            this.activeFuelME = NETHER_STAR_ME;
+            this.activeFuelMaxME = NETHER_STAR_ME;
+        }
         this.upkeepRemainderTenths = 0;
         markChangedAndSync();
     }
 
     public boolean isDormant() {
-        return this.currentME <= 0L;
+        return requiresFuelForUpkeep() && this.activeFuelME <= 0L;
     }
 
     public int getBaseUpkeepTenthsPerTick() {
@@ -238,18 +240,48 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
         return getCurrentUpkeepTenthsPerTick() / 10.0D;
     }
 
+    public void applyStowedUpkeep(long currentGameTime) {
+        if (this.stowedGameTime < 0L) {
+            return;
+        }
+
+        long elapsedTicks = Math.max(0L, currentGameTime - this.stowedGameTime);
+        this.stowedGameTime = -1L;
+        if (!MagicLibraryConfig.isUpkeepEnabled() || elapsedTicks <= 0L || this.activeFuelME <= 0L) {
+            setChanged();
+            return;
+        }
+
+        int upkeepTenths = getCurrentUpkeepTenthsPerTick();
+        if (upkeepTenths <= 0) {
+            setChanged();
+            return;
+        }
+
+        long elapsedTenths = saturatingMultiply(elapsedTicks, upkeepTenths);
+        long totalTenths = saturatingAdd(elapsedTenths, this.upkeepRemainderTenths);
+        long drainWholeME = totalTenths / 10L;
+        long nextFuelME = Math.max(0L, this.activeFuelME - drainWholeME);
+        this.activeFuelME = nextFuelME;
+        this.upkeepRemainderTenths = nextFuelME > 0L ? (int) (totalTenths % 10L) : 0;
+        if (this.activeFuelME <= 0L) {
+            this.activeFuelMaxME = 0L;
+        }
+        setChanged();
+    }
+
     public long getFuelValue(ItemStack stack) {
-        if (stack.isEmpty()) {
+        if (!MagicLibraryConfig.isUpkeepEnabled() || stack.isEmpty()) {
             return 0L;
         }
         if (stack.is(Items.REDSTONE)) {
-            return REDSTONE_ME;
+            return MagicLibraryConfig.getRedstoneFuelME();
         }
         if (stack.is(Items.GLOWSTONE_DUST)) {
-            return GLOWSTONE_DUST_ME;
+            return MagicLibraryConfig.getGlowstoneDustFuelME();
         }
         if (stack.is(Items.AMETHYST_SHARD)) {
-            return AMETHYST_ME;
+            return MagicLibraryConfig.getAmethystShardFuelME();
         }
         if (this.tier == MagicLibraryTier.TIER3 && stack.is(Items.NETHER_STAR)) {
             return NETHER_STAR_ME;
@@ -531,9 +563,8 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
 
         int upgradeNumber = MagicLibraryConfig.getAmplificationUpgradeNumber(vanillaMaxLevel, currentMaxLevel);
         int xpCost = MagicLibraryConfig.getAmplificationXpCost(upgradeNumber);
-        long meCost = MagicLibraryConfig.getAmplificationMECost();
 
-        if (player.experienceLevel < xpCost || this.currentME < meCost) {
+        if (player.experienceLevel < xpCost) {
             return false;
         }
 
@@ -542,7 +573,6 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
         if (targetLevel <= currentMaxLevel) {
             return false;
         }
-        this.currentME = Math.max(0L, this.currentME - meCost);
         if (xpCost > 0) {
             player.giveExperienceLevels(-xpCost);
         }
@@ -564,31 +594,24 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
 
         boolean changed = false;
 
-        if (this.currentME > 0L) {
-            int totalTenths = getCurrentUpkeepTenthsPerTick() + this.upkeepRemainderTenths;
-            long drainWholeME = totalTenths / 10L;
-            this.upkeepRemainderTenths = totalTenths % 10;
-            this.currentME = Math.max(0L, this.currentME - drainWholeME);
-            changed = true;
-        } else if (this.upkeepRemainderTenths != 0) {
-            this.upkeepRemainderTenths = 0;
-        }
-
-        ItemStack fuelStack = this.items.get(SLOT_FUEL);
-        if (!fuelStack.isEmpty()) {
-            long fuelME = getFuelValue(fuelStack);
-            long maxME = getMaxME();
-            if (fuelME > 0L && this.currentME + fuelME <= maxME) {
-                fuelStack.shrink(1);
-                if (fuelStack.isEmpty()) {
-                    this.items.set(SLOT_FUEL, ItemStack.EMPTY);
-                }
-                this.currentME += fuelME;
+        int upkeepTenths = getCurrentUpkeepTenthsPerTick();
+        boolean activeThisTick = !requiresFuelForUpkeep();
+        if (MagicLibraryConfig.isUpkeepEnabled() && upkeepTenths > 0) {
+            if (this.activeFuelME <= 0L && tryActivateNextFuel()) {
                 changed = true;
             }
+            activeThisTick = this.activeFuelME > 0L;
+            if (activeThisTick) {
+                changed = drainActiveFuel(upkeepTenths) || changed;
+                if (this.activeFuelME <= 0L && tryActivateNextFuel()) {
+                    changed = true;
+                }
+            }
+        } else if (clearActiveFuelState()) {
+            changed = true;
         }
 
-        if (!isDormant()) {
+        if (activeThisTick) {
             if (tryProcessExtraction()) {
                 changed = true;
             }
@@ -1464,6 +1487,49 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
         return this.storedEnchantData.size();
     }
 
+    private boolean requiresFuelForUpkeep() {
+        return MagicLibraryConfig.isUpkeepEnabled() && getCurrentUpkeepTenthsPerTick() > 0;
+    }
+
+    private boolean tryActivateNextFuel() {
+        ItemStack fuelStack = this.items.get(SLOT_FUEL);
+        long fuelME = getFuelValue(fuelStack);
+        if (fuelME <= 0L) {
+            return false;
+        }
+
+        fuelStack.shrink(1);
+        if (fuelStack.isEmpty()) {
+            this.items.set(SLOT_FUEL, ItemStack.EMPTY);
+        }
+        this.activeFuelME = fuelME;
+        this.activeFuelMaxME = fuelME;
+        this.upkeepRemainderTenths = 0;
+        return true;
+    }
+
+    private boolean drainActiveFuel(int upkeepTenths) {
+        int totalTenths = upkeepTenths + this.upkeepRemainderTenths;
+        long drainWholeME = totalTenths / 10L;
+        int nextRemainderTenths = totalTenths % 10;
+        long nextFuelME = Math.max(0L, this.activeFuelME - drainWholeME);
+        boolean changed = drainWholeME > 0L || nextRemainderTenths != this.upkeepRemainderTenths;
+        this.upkeepRemainderTenths = nextFuelME > 0L ? nextRemainderTenths : 0;
+        this.activeFuelME = nextFuelME;
+        if (this.activeFuelME <= 0L) {
+            this.activeFuelMaxME = 0L;
+        }
+        return changed;
+    }
+
+    private boolean clearActiveFuelState() {
+        boolean changed = this.activeFuelME != 0L || this.activeFuelMaxME != 0L || this.upkeepRemainderTenths != 0;
+        this.activeFuelME = 0L;
+        this.activeFuelMaxME = 0L;
+        this.upkeepRemainderTenths = 0;
+        return changed;
+    }
+
     private void markChangedAndSync() {
         setChanged();
         if (this.level != null && !this.level.isClientSide()) {
@@ -1486,6 +1552,16 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
             return Long.MAX_VALUE;
         }
         return result;
+    }
+
+    private static long saturatingMultiply(long a, long b) {
+        if (a <= 0L || b <= 0L) {
+            return 0L;
+        }
+        if (a > Long.MAX_VALUE / b) {
+            return Long.MAX_VALUE;
+        }
+        return a * b;
     }
 
     public static long getPointsForLevel(int level) {
@@ -1521,7 +1597,8 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
     @Override
     protected void saveAdditional(ValueOutput output) {
         super.saveAdditional(output);
-        output.putLong("CurrentME", this.currentME);
+        output.putLong("ActiveFuelME", this.activeFuelME);
+        output.putLong("ActiveFuelMaxME", this.activeFuelMaxME);
         output.putInt("UpkeepRemainderTenths", this.upkeepRemainderTenths);
         output.putBoolean("DangerousExtractionBlocked", this.dangerousExtractionBlocked);
         output.putBoolean("DangerousExtractionConfirmed", this.dangerousExtractionConfirmed);
@@ -1529,6 +1606,9 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
         output.putBoolean(TAG_PENDING_OUTPUT_PREVIEW, this.pendingOutputPreview);
         output.putBoolean(TAG_PENDING_OUTPUT_CLAIMED, this.pendingOutputClaimed);
         output.putBoolean(TAG_TIER3_PREVIEW_USES_VIRTUAL_BOOK_BASE, this.tier3PreviewUsesVirtualBookBase);
+        if (this.stowedGameTime >= 0L) {
+            output.putLong("StowedGameTime", this.stowedGameTime);
+        }
         ContainerHelper.saveAllItems(output, this.items);
         output.store("StoredEnchantData", STORED_ENCHANTS_CODEC, this.storedEnchantData);
         output.store("PreparedEnchantLevels", PREPARED_LEVELS_CODEC, this.preparedEnchantLevels);
@@ -1539,7 +1619,8 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
     @Override
     protected void loadAdditional(ValueInput input) {
         super.loadAdditional(input);
-        this.currentME = Math.max(0L, input.getLongOr("CurrentME", 0L));
+        this.activeFuelME = Math.max(0L, input.getLongOr("ActiveFuelME", 0L));
+        this.activeFuelMaxME = Math.max(this.activeFuelME, input.getLongOr("ActiveFuelMaxME", 0L));
         this.upkeepRemainderTenths = Math.clamp(input.getIntOr("UpkeepRemainderTenths", 0), 0, 9);
         this.dangerousExtractionBlocked = input.getBooleanOr("DangerousExtractionBlocked", false);
         this.dangerousExtractionConfirmed = input.getBooleanOr("DangerousExtractionConfirmed", false);
@@ -1550,6 +1631,7 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
         );
         this.pendingOutputClaimed = input.getBooleanOr(TAG_PENDING_OUTPUT_CLAIMED, false);
         this.tier3PreviewUsesVirtualBookBase = input.getBooleanOr(TAG_TIER3_PREVIEW_USES_VIRTUAL_BOOK_BASE, false);
+        this.stowedGameTime = input.getLongOr("StowedGameTime", -1L);
         ContainerHelper.loadAllItems(input, this.items);
 
         this.storedEnchantData.clear();

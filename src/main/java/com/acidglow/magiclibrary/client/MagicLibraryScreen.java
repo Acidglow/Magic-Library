@@ -367,6 +367,7 @@ public class MagicLibraryScreen extends AbstractContainerScreen<MagicLibraryMenu
         syncExtractionWarningPopupState();
         syncAmplificationPopupState();
         super.render(guiGraphics, mouseX, mouseY, partialTick);
+        renderDisabledUpkeepFuelGhost(guiGraphics);
         renderForegroundText(guiGraphics, mouseX, mouseY);
 
         if (this.extractionWarningPopupOpen) {
@@ -743,16 +744,8 @@ public class MagicLibraryScreen extends AbstractContainerScreen<MagicLibraryMenu
         lines.add(Component.literal("Next max: " + RomanNumeralUtil.toRoman(nextLevel)));
         lines.add(Component.literal("Cost:"));
 
-        long meCost = MagicLibraryConfig.getAmplificationMECost();
         int xpCost = getAmplificationXpCostClient(row, currentMax);
-        long currentME = this.menu.getCurrentMEClient();
         int playerXPLevels = this.minecraft.player != null ? this.minecraft.player.experienceLevel : 0;
-
-        var meCostLine = Component.literal("- " + formatNumber(meCost) + " ME");
-        if (currentME < meCost) {
-            meCostLine = meCostLine.withStyle(style -> style.withColor(TOOLTIP_UNAFFORDABLE_COLOR));
-        }
-        lines.add(meCostLine);
 
         var xpCostLine = Component.literal("- " + formatNumber(xpCost) + " XP");
         if (playerXPLevels < xpCost) {
@@ -1464,6 +1457,22 @@ public class MagicLibraryScreen extends AbstractContainerScreen<MagicLibraryMenu
         }
     }
 
+    private void renderDisabledUpkeepFuelGhost(GuiGraphics guiGraphics) {
+        if (MagicLibraryConfig.isUpkeepEnabled() || MagicLibraryBlockEntity.SLOT_FUEL >= this.menu.slots.size()) {
+            return;
+        }
+
+        Slot fuelSlot = this.menu.slots.get(MagicLibraryBlockEntity.SLOT_FUEL);
+        if (fuelSlot.hasItem()) {
+            return;
+        }
+
+        int x = this.leftPos + fuelSlot.x;
+        int y = this.topPos + fuelSlot.y;
+        guiGraphics.fill(x, y, x + 16, y + 16, 0x88000000);
+        guiGraphics.renderFakeItem(new ItemStack(Items.NETHER_STAR), x, y);
+    }
+
     private void drawRoundedRect(GuiGraphics guiGraphics, int x, int y, int width, int height, int color) {
         if (width <= 0 || height <= 0) {
             return;
@@ -1650,8 +1659,17 @@ public class MagicLibraryScreen extends AbstractContainerScreen<MagicLibraryMenu
         long currentME = this.menu.getCurrentMEClient();
         long maxME = this.menu.getMaxMEClient();
         int upkeepTenths = this.menu.getUpkeepTenthsPerTickClient();
+        if (!MagicLibraryConfig.isUpkeepEnabled()) {
+            List<Component> lines = List.of(
+                Component.literal("Fuel: disabled / infinite (100%)"),
+                Component.literal("Upkeep: disabled")
+            );
+            guiGraphics.setComponentTooltipForNextFrame(this.font, lines, mouseX, mouseY);
+            return;
+        }
+
         List<Component> lines = List.of(
-            Component.literal("Stored: " + formatNumber(currentME) + " / " + formatNumber(maxME) + " ME"),
+            Component.literal("Fuel: " + formatNumber(currentME) + " / " + formatNumber(maxME) + " ME (" + formatPercent(currentME, maxME) + ")"),
             Component.literal("Upkeep: " + formatTenths(upkeepTenths) + " ME/t")
         );
         guiGraphics.setComponentTooltipForNextFrame(this.font, lines, mouseX, mouseY);
@@ -1998,6 +2016,14 @@ public class MagicLibraryScreen extends AbstractContainerScreen<MagicLibraryMenu
             return Integer.toString(whole);
         }
         return whole + "." + decimal;
+    }
+
+    private static String formatPercent(long current, long max) {
+        if (max <= 0L || current <= 0L) {
+            return "0%";
+        }
+        long percent = Math.clamp(Math.round((current * 100.0D) / max), 0L, 100L);
+        return percent + "%";
     }
 
     private static String getTierPanelLabel(MagicLibraryTier tier) {

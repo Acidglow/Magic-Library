@@ -100,20 +100,20 @@ public final class MagicLibraryConfig {
 
     public static final ModConfigSpec.BooleanValue ALLOW_INCOMPATIBLE_ENCHANTS;
 
+    public static final ModConfigSpec.BooleanValue ENABLE_UPKEEP;
     public static final ModConfigSpec.DoubleValue TIER1_BASE_UPKEEP;
     public static final ModConfigSpec.DoubleValue TIER2_BASE_UPKEEP;
     public static final ModConfigSpec.DoubleValue TIER3_BASE_UPKEEP;
     public static final ModConfigSpec.DoubleValue PER_ENCHANT_TYPE_UPKEEP;
 
-    public static final ModConfigSpec.LongValue TIER1_CAPACITY;
-    public static final ModConfigSpec.LongValue TIER2_CAPACITY;
-    public static final ModConfigSpec.LongValue TIER3_CAPACITY;
+    public static final ModConfigSpec.LongValue REDSTONE_FUEL_ME;
+    public static final ModConfigSpec.LongValue GLOWSTONE_DUST_FUEL_ME;
+    public static final ModConfigSpec.LongValue AMETHYST_SHARD_FUEL_ME;
 
     public static final ModConfigSpec.IntValue EXTRACTION_DAMAGE_PERCENT;
     public static final ModConfigSpec.IntValue AMPLIFICATION_SOFT_CAP;
     public static final ModConfigSpec.IntValue AMPLIFICATION_XP_BASE;
     public static final ModConfigSpec.IntValue AMPLIFICATION_XP_STEP;
-    public static final ModConfigSpec.LongValue AMPLIFICATION_ME_COST;
 
     public static final ModConfigSpec SPEC;
     private static long cachedLegacyAmplificationRuleOverrideTimestamp = Long.MIN_VALUE;
@@ -127,30 +127,33 @@ public final class MagicLibraryConfig {
         BUILDER.pop();
 
         BUILDER.push("upkeep");
+        ENABLE_UPKEEP = BUILDER
+            .comment("If false, libraries do not consume ME upkeep.")
+            .define("enable upkeep", true);
         TIER1_BASE_UPKEEP = BUILDER
             .comment("Base ME upkeep per tick for tier 1 libraries.")
-            .defineInRange("tier1Base", 2.0D, 0.0D, 1_000_000.0D);
+            .defineInRange("tier1Base", 1.0D, 0.0D, 1_000_000.0D);
         TIER2_BASE_UPKEEP = BUILDER
             .comment("Base ME upkeep per tick for tier 2 libraries.")
-            .defineInRange("tier2Base", 4.0D, 0.0D, 1_000_000.0D);
+            .defineInRange("tier2Base", 2.0D, 0.0D, 1_000_000.0D);
         TIER3_BASE_UPKEEP = BUILDER
             .comment("Base ME upkeep per tick for tier 3 libraries.")
-            .defineInRange("tier3Base", 8.0D, 0.0D, 1_000_000.0D);
+            .defineInRange("tier3Base", 4.0D, 0.0D, 1_000_000.0D);
         PER_ENCHANT_TYPE_UPKEEP = BUILDER
             .comment("Additional ME upkeep per stored enchant type.")
             .defineInRange("perEnchantType", 0.1D, 0.0D, 1_000_000.0D);
         BUILDER.pop();
 
-        BUILDER.push("capacity");
-        TIER1_CAPACITY = BUILDER
-            .comment("Maximum ME capacity for tier 1 libraries.")
-            .defineInRange("tier1Capacity", 1_000_000L, 1L, Long.MAX_VALUE);
-        TIER2_CAPACITY = BUILDER
-            .comment("Maximum ME capacity for tier 2 libraries.")
-            .defineInRange("tier2Capacity", 10_000_000L, 1L, Long.MAX_VALUE);
-        TIER3_CAPACITY = BUILDER
-            .comment("Maximum ME capacity for tier 3 libraries.")
-            .defineInRange("tier3Capacity", 200_000_000L, 1L, Long.MAX_VALUE);
+        BUILDER.push("fuel");
+        REDSTONE_FUEL_ME = BUILDER
+            .comment("Active fuel ME provided by Redstone.")
+            .defineInRange("redstone", 1_000L, 0L, Long.MAX_VALUE);
+        GLOWSTONE_DUST_FUEL_ME = BUILDER
+            .comment("Active fuel ME provided by Glowstone Dust.")
+            .defineInRange("glowstoneDust", 5_000L, 0L, Long.MAX_VALUE);
+        AMETHYST_SHARD_FUEL_ME = BUILDER
+            .comment("Active fuel ME provided by Amethyst Shard.")
+            .defineInRange("amethystShard", 10_000L, 0L, Long.MAX_VALUE);
         BUILDER.pop();
 
         BUILDER.push("extraction");
@@ -169,9 +172,6 @@ public final class MagicLibraryConfig {
         AMPLIFICATION_XP_STEP = BUILDER
             .comment("Additional XP levels added per amplification step after the first.")
             .defineInRange("xpStep", 15, 0, Integer.MAX_VALUE);
-        AMPLIFICATION_ME_COST = BUILDER
-            .comment("Fixed ME cost per amplification action.")
-            .defineInRange("meCost", 100_000L, 0L, Long.MAX_VALUE);
         BUILDER.pop();
 
         SPEC = BUILDER.build();
@@ -196,7 +196,14 @@ public final class MagicLibraryConfig {
         return ALLOW_INCOMPATIBLE_ENCHANTS.get();
     }
 
+    public static boolean isUpkeepEnabled() {
+        return ENABLE_UPKEEP.get();
+    }
+
     public static int getBaseUpkeepTenths(MagicLibraryTier tier) {
+        if (!isUpkeepEnabled()) {
+            return 0;
+        }
         return switch (tier) {
             case TIER1 -> toTenths(TIER1_BASE_UPKEEP.get());
             case TIER2 -> toTenths(TIER2_BASE_UPKEEP.get());
@@ -205,15 +212,22 @@ public final class MagicLibraryConfig {
     }
 
     public static int getPerEnchantTypeUpkeepTenths() {
+        if (!isUpkeepEnabled()) {
+            return 0;
+        }
         return toTenths(PER_ENCHANT_TYPE_UPKEEP.get());
     }
 
-    public static long getCapacity(MagicLibraryTier tier) {
-        return switch (tier) {
-            case TIER1 -> TIER1_CAPACITY.get();
-            case TIER2 -> TIER2_CAPACITY.get();
-            case TIER3 -> TIER3_CAPACITY.get();
-        };
+    public static long getRedstoneFuelME() {
+        return REDSTONE_FUEL_ME.get();
+    }
+
+    public static long getGlowstoneDustFuelME() {
+        return GLOWSTONE_DUST_FUEL_ME.get();
+    }
+
+    public static long getAmethystShardFuelME() {
+        return AMETHYST_SHARD_FUEL_ME.get();
     }
 
     public static int getExtractionDamagePercent() {
@@ -235,10 +249,6 @@ public final class MagicLibraryConfig {
             return Integer.MAX_VALUE;
         }
         return (int) Math.max(0L, cost);
-    }
-
-    public static long getAmplificationMECost() {
-        return AMPLIFICATION_ME_COST.get();
     }
 
     public static List<String> getDefaultAmplificationEnchantRuleEntries() {

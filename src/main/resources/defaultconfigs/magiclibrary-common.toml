@@ -1,5 +1,39 @@
+[upkeep]
+#If false, libraries do not consume ME upkeep.
+# Default: true
+"enable upkeep" = true
+#Base ME upkeep per tick for tier 1 libraries.
+# Default: 1.0
+# Range: 0.0 ~ 1000000.0
+tier1Base = 1.0
+#Base ME upkeep per tick for tier 2 libraries.
+# Default: 2.0
+# Range: 0.0 ~ 1000000.0
+tier2Base = 2.0
+#Base ME upkeep per tick for tier 3 libraries.
+# Default: 4.0
+# Range: 0.0 ~ 1000000.0
+tier3Base = 4.0
+#Additional ME upkeep per stored enchant type.
+# Default: 0.1
+# Range: 0.0 ~ 1000000.0
+perEnchantType = 0.1
+
+[fuel]
+#Active fuel ME provided by Redstone.
+# Default: 1000
+# Range: 0 ~ 9223372036854775807
+redstone = 1000
+#Active fuel ME provided by Glowstone Dust.
+# Default: 5000
+# Range: 0 ~ 9223372036854775807
+glowstoneDust = 5000
+#Active fuel ME provided by Amethyst Shard.
+# Default: 10000
+# Range: 0 ~ 9223372036854775807
+amethystShard = 10000
+
 [amplification]
 softCap = 255
 xpBase = 10
 xpStep = 15
-meCost = 100000

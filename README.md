@@ -18,13 +18,14 @@ The mod is built around three library tiers:
 - Lets Archmage libraries apply enchantments directly onto gear, not just books.
 - Adds Tome of Amplification support to raise an enchantment's maximum library level beyond vanilla.
 - Preserves stored data when a library block is broken or upgraded.
+- Library item tooltips show how many enchantments are stored.
 - Improves tooltip and Roman numeral rendering for high-level enchantments so amplified gear reads correctly in-game.
 - Generates a per-enchantment cap config for both vanilla and modded enchantments.
 
 ## Core Gameplay Loop
 
 1. Craft an `Apprentice Library`.
-2. Feed it `Redstone`, `Glowstone Dust`, or `Amethyst Shards` to charge it with `ME`.
+2. Feed it `Redstone`, `Glowstone Dust`, or `Amethyst Shards` to start an active ME fuel burn.
 3. Insert enchanted books or gear into the extraction slot.
 4. The library strips eligible enchantments, converts them into stored enchant points, and records the highest level you have discovered.
 5. Use the enchant list to prepare new enchanted books from the library's stored pool.
@@ -33,24 +34,27 @@ The mod is built around three library tiers:
 
 ## Tier Breakdown
 
-| Tier | Capacity | Base upkeep | Extraction discovery cap | Special features |
-| --- | ---: | ---: | ---: | --- |
-| Apprentice | 1,000,000 ME | 2.0 ME/t | Level II | Book-based enchanting |
-| Adept | 10,000,000 ME | 4.0 ME/t | Level IV | Better storage and extraction |
-| Archmage | 200,000,000 ME | 8.0 ME/t | Unlimited | Direct gear enchanting, Tome amplification, Nether Star fuel |
+| Tier | Base upkeep | Extraction discovery cap | Special features |
+| --- | ---: | ---: | --- |
+| Apprentice | 1.0 ME/t | Level II | Book-based enchanting |
+| Adept | 2.0 ME/t | Level IV | Better storage and extraction |
+| Archmage | 4.0 ME/t | Unlimited | Direct gear enchanting, Tome amplification, Nether Star fuel |
 
 Additional upkeep is `0.1 ME/t` per stored enchantment type.
 
 ## Fuel Values
 
-| Fuel | ME restored |
+| Fuel | Active fuel ME |
 | --- | ---: |
-| Redstone | 10,000 |
-| Glowstone Dust | 40,000 |
-| Amethyst Shard | 100,000 |
+| Redstone | 1,000 |
+| Glowstone Dust | 5,000 |
+| Amethyst Shard | 10,000 |
 | Nether Star | 100,000,000 |
 
 `Nether Star` fuel is only accepted by the Archmage Library.
+The energy bar shows the active fuel item's remaining ME and percentage.
+When upkeep is disabled in `magiclibrary-common.toml`, the energy bar shows 100%, the fuel slot is inactive, and an empty fuel slot shows a ghost Nether Star icon.
+When a fueled library is broken and placed again, elapsed world time is charged against its active fuel.
 
 ## Extraction Rules
 
@@ -76,7 +80,7 @@ Additional upkeep is `0.1 ME/t` per stored enchantment type.
 The `Tome of Amplification` is the Archmage Library's endgame feature.
 
 - Each use raises one stored enchantment's maximum library level by `+1`.
-- Each amplification consumes `1 Tome of Amplification`, `100,000 ME`, and player XP based on the upgrade step.
+- Each amplification consumes `1 Tome of Amplification` and player XP based on the upgrade step.
 - Default Tome XP cost is `10 levels` for the first amplification step, then `+15 levels` for each further step.
 - Global amplification soft cap defaults to `255`.
 - Per-enchantment caps can override that limit or disable amplification entirely.
@@ -155,11 +159,11 @@ The mod exposes two main configuration layers.
 Controls core behavior such as:
 
 - enchant compatibility rules
-- tier capacities
+- fuel values
 - ME upkeep
 - extraction durability damage
 - global Tome soft cap
-- Tome XP and ME costs
+- Tome XP costs
 
 ### `config/magiclibrary/enchant_caps.toml`
 

@@ -10,6 +10,7 @@ import net.minecraft.tags.ItemTags;
 import net.minecraft.util.ProblemReporter;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
@@ -144,6 +145,16 @@ public class MagicLibraryBlock extends Block implements EntityBlock {
         }
     }
 
+    @Override
+    public void setPlacedBy(Level level, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack stack) {
+        if (level.isClientSide()) {
+            return;
+        }
+        if (level.getBlockEntity(pos) instanceof MagicLibraryBlockEntity libraryBlockEntity) {
+            libraryBlockEntity.applyStowedUpkeep(level.getGameTime());
+        }
+    }
+
     private ItemStack createLibraryDropStack(Level level, @Nullable BlockEntity blockEntity) {
         ItemStack dropStack = new ItemStack(this);
         if (blockEntity instanceof MagicLibraryBlockEntity libraryBlockEntity) {
@@ -155,6 +166,7 @@ public class MagicLibraryBlock extends Block implements EntityBlock {
     private static void saveLibraryDataToItem(Level level, MagicLibraryBlockEntity blockEntity, ItemStack dropStack) {
         TagValueOutput output = TagValueOutput.createWithContext(ProblemReporter.DISCARDING, level.registryAccess());
         blockEntity.saveCustomOnly(output);
+        output.putLong("StowedGameTime", level.getGameTime());
         BlockItem.setBlockEntityData(dropStack, blockEntity.getType(), output);
     }
 

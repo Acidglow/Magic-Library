@@ -100,10 +100,20 @@ public class MagicLibraryMenu extends AbstractContainerMenu {
         this.tier = resolveTier();
         this.slotContainer = this.blockEntity != null ? this.blockEntity.getMenuContainer() : this.fallbackSlots;
 
-        this.addSlot(new Slot(this.slotContainer, MagicLibraryBlockEntity.SLOT_FUEL, 21, 27) {
+        this.addSlot(new Slot(this.slotContainer, MagicLibraryBlockEntity.SLOT_FUEL, 21, 26) {
             @Override
             public boolean mayPlace(ItemStack stack) {
                 return isValidFuel(stack);
+            }
+
+            @Override
+            public boolean mayPickup(Player player) {
+                return MagicLibraryConfig.isUpkeepEnabled() || this.hasItem();
+            }
+
+            @Override
+            public boolean isActive() {
+                return MagicLibraryConfig.isUpkeepEnabled() || this.hasItem();
             }
         });
         this.addSlot(new Slot(this.slotContainer, MagicLibraryBlockEntity.SLOT_EXTRACT, 173, 71) {
@@ -309,8 +319,7 @@ public class MagicLibraryMenu extends AbstractContainerMenu {
     }
 
     public long getMaxMEClient() {
-        long synced = fromHighLow(this.maxMEHighClient, this.maxMELowClient);
-        return synced > 0L ? synced : getMaxMEForTier(this.tier);
+        return fromHighLow(this.maxMEHighClient, this.maxMELowClient);
     }
 
     public int getUpkeepTenthsPerTickClient() {
@@ -322,7 +331,7 @@ public class MagicLibraryMenu extends AbstractContainerMenu {
     }
 
     public boolean isDormantClient() {
-        return getCurrentMEClient() <= 0L;
+        return getUpkeepTenthsPerTickClient() > 0 && getCurrentMEClient() <= 0L;
     }
 
     public Map<Identifier, EnchantData> getStoredEnchantDataClient() {
@@ -492,7 +501,7 @@ public class MagicLibraryMenu extends AbstractContainerMenu {
     }
 
     private long getMaxMEServer() {
-        return this.blockEntity != null ? this.blockEntity.getMaxME() : getMaxMEForTier(this.tier);
+        return this.blockEntity != null ? this.blockEntity.getMaxME() : 0L;
     }
 
     private int getUpkeepTenthsPerTickServer() {
@@ -558,21 +567,20 @@ public class MagicLibraryMenu extends AbstractContainerMenu {
         }
     }
 
-    private static long getMaxMEForTier(MagicLibraryTier tier) {
-        return MagicLibraryConfig.getCapacity(tier);
-    }
-
     private static long getFuelMEForTier(ItemStack stack, MagicLibraryTier tier) {
-        if (stack.is(net.minecraft.world.item.Items.REDSTONE)) {
-            return 10_000L;
+        if (!MagicLibraryConfig.isUpkeepEnabled()) {
+            return 0L;
         }
-        if (stack.is(net.minecraft.world.item.Items.GLOWSTONE_DUST)) {
-            return 40_000L;
+        if (stack.is(Items.REDSTONE)) {
+            return MagicLibraryConfig.getRedstoneFuelME();
         }
-        if (stack.is(net.minecraft.world.item.Items.AMETHYST_SHARD)) {
-            return 100_000L;
+        if (stack.is(Items.GLOWSTONE_DUST)) {
+            return MagicLibraryConfig.getGlowstoneDustFuelME();
         }
-        if (tier == MagicLibraryTier.TIER3 && stack.is(net.minecraft.world.item.Items.NETHER_STAR)) {
+        if (stack.is(Items.AMETHYST_SHARD)) {
+            return MagicLibraryConfig.getAmethystShardFuelME();
+        }
+        if (tier == MagicLibraryTier.TIER3 && stack.is(Items.NETHER_STAR)) {
             return 100_000_000L;
         }
         return 0L;
