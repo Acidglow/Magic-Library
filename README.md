@@ -204,7 +204,7 @@ After using it, the next Archmage Library opened by that player becomes a fully 
 
 ## License
 
-Magic Library is licensed under the `MIT` License. See [LICENSE](D:\MC projekter\Magic-Library\LICENSE).
+Magic Library is licensed under the `MIT` License. See [LICENSE](LICENSE).
 
 ## Summary
 
