@@ -746,9 +746,10 @@ public class MagicLibraryScreen extends AbstractContainerScreen<MagicLibraryMenu
 
         int xpCost = getAmplificationXpCostClient(row, currentMax);
         int playerXPLevels = this.minecraft.player != null ? this.minecraft.player.experienceLevel : 0;
+        boolean hasInfiniteMaterials = this.minecraft.player != null && this.minecraft.player.getAbilities().instabuild;
 
         var xpCostLine = Component.literal("- " + formatNumber(xpCost) + " XP");
-        if (playerXPLevels < xpCost) {
+        if (!hasInfiniteMaterials && playerXPLevels < xpCost) {
             xpCostLine = xpCostLine.withStyle(style -> style.withColor(TOOLTIP_UNAFFORDABLE_COLOR));
         }
         lines.add(xpCostLine);
@@ -847,7 +848,8 @@ public class MagicLibraryScreen extends AbstractContainerScreen<MagicLibraryMenu
             long rawXp = getRawXPCost(original, target);
             xpCost = applyTier3Discount(rawXp);
             int playerXPLevels = this.minecraft.player != null ? this.minecraft.player.experienceLevel : 0;
-            xpAffordable = xpCost <= playerXPLevels;
+            boolean hasInfiniteMaterials = this.minecraft.player != null && this.minecraft.player.getAbilities().instabuild;
+            xpAffordable = hasInfiniteMaterials || xpCost <= playerXPLevels;
         }
 
         return new TooltipCostPreview(target, false, pointCost, xpCost, pointsAffordable, xpAffordable);
@@ -1803,7 +1805,8 @@ public class MagicLibraryScreen extends AbstractContainerScreen<MagicLibraryMenu
         if (needsXP) {
             long finalXP = applyTier3Discount(rawTotalXP);
             int playerXPLevels = this.minecraft.player != null ? this.minecraft.player.experienceLevel : 0;
-            if (finalXP > playerXPLevels) {
+            boolean hasInfiniteMaterials = this.minecraft.player != null && this.minecraft.player.getAbilities().instabuild;
+            if (!hasInfiniteMaterials && finalXP > playerXPLevels) {
                 return false;
             }
         }

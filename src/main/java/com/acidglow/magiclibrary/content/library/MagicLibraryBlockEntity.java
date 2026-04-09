@@ -564,7 +564,7 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
         int upgradeNumber = MagicLibraryConfig.getAmplificationUpgradeNumber(vanillaMaxLevel, currentMaxLevel);
         int xpCost = MagicLibraryConfig.getAmplificationXpCost(upgradeNumber);
 
-        if (player.experienceLevel < xpCost) {
+        if (!canAffordXPCost(player, xpCost)) {
             return false;
         }
 
@@ -573,7 +573,7 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
         if (targetLevel <= currentMaxLevel) {
             return false;
         }
-        if (xpCost > 0) {
+        if (xpCost > 0 && shouldConsumePlayerXP(player)) {
             player.giveExperienceLevels(-xpCost);
         }
         tomeStack.shrink(1);
@@ -992,7 +992,7 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
             if (!costs.valid()) {
                 break;
             }
-            if (requiresTier3XPCost(input) && costs.totalXPCost() > player.experienceLevel) {
+            if (requiresTier3XPCost(input) && !canAffordXPCost(player, costs.totalXPCost())) {
                 break;
             }
             best = level;
@@ -1066,7 +1066,7 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
             return false;
         }
 
-        if (requiresTier3XPCost(input) && costs.totalXPCost() > player.experienceLevel) {
+        if (requiresTier3XPCost(input) && !canAffordXPCost(player, costs.totalXPCost())) {
             return false;
         }
 
@@ -1108,7 +1108,7 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
             this.storedEnchantData.put(enchantmentId, new EnchantData(data.storedPoints() - pointCost, data.maxDiscoveredLevel()));
         }
 
-        if (requiresTier3XPCost(input) && costs.totalXPCost() > 0L) {
+        if (requiresTier3XPCost(input) && costs.totalXPCost() > 0L && shouldConsumePlayerXP(player)) {
             int xpToPay = costs.totalXPCost() > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) costs.totalXPCost();
             player.giveExperienceLevels(-xpToPay);
         }
@@ -1142,6 +1142,18 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
         long newPoints = saturatingAdd(currentPoints, addedPoints);
 
         this.storedEnchantData.put(enchantmentId, new EnchantData(newPoints, newDiscovered));
+    }
+
+    private boolean canAffordXPCost(Player player, long xpCost) {
+        return hasInfiniteMaterials(player) || xpCost <= player.experienceLevel;
+    }
+
+    private boolean shouldConsumePlayerXP(Player player) {
+        return !hasInfiniteMaterials(player);
+    }
+
+    private boolean hasInfiniteMaterials(Player player) {
+        return player.getAbilities().instabuild;
     }
 
     private int getEffectiveLibraryMaxLevel(Identifier enchantmentId, Holder.Reference<Enchantment> holder) {

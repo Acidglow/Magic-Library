@@ -114,9 +114,9 @@ R B R
 A L A
 
 A = Amethyst Shard
-L = Lapis Lazuli
+L = Diamond
 R = Redstone
-B = Blaze Powder
+B = Ender Pearl
 ```
 
 ### Archmage Core
@@ -129,14 +129,24 @@ G E G
 A D A
 
 A = Amethyst Shard
-D = Diamond
+D = Netherite Ingot
 G = Glowstone Dust
 E = Ender Eye
 ```
 
 ### Tome Of Amplification
 
-The item exists and is fully integrated into Archmage Library gameplay, but this repository does not currently ship a crafting recipe for it in `data/magiclibrary/recipe`.
+```text
+A G A
+E B E
+A C A
+
+A = Amethyst Shard
+G = Glowstone Dust
+E = Ender Eye
+B = Enchanted Book
+C = End Crystal
+```
 
 ## UI And Presentation
 

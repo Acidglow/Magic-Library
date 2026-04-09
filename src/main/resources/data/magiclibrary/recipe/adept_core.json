@@ -3,8 +3,8 @@
   "category": "misc",
   "key": {
     "A": "minecraft:amethyst_shard",
-    "B": "minecraft:blaze_powder",
-    "L": "minecraft:lapis_lazuli",
+    "B": "minecraft:ender_pearl",
+    "L": "minecraft:diamond",
     "R": "minecraft:redstone"
   },
   "pattern": [

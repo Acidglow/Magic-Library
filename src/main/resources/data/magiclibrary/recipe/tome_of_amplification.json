@@ -3,17 +3,18 @@
   "category": "misc",
   "key": {
     "A": "minecraft:amethyst_shard",
-    "D": "minecraft:netherite_ingot",
+    "B": "minecraft:enchanted_book",
+    "C": "minecraft:end_crystal",
     "E": "minecraft:ender_eye",
     "G": "minecraft:glowstone_dust"
   },
   "pattern": [
-    "ADA",
-    "GEG",
-    "ADA"
+    "AGA",
+    "EBE",
+    "ACA"
   ],
   "result": {
     "count": 1,
-    "id": "magiclibrary:archmage_core"
+    "id": "magiclibrary:tome_of_amplification"
   }
 }
