@@ -1,6 +1,6 @@
 # Magic Library
 
-Magic Library is a tiered enchantment storage and amplification mod for NeoForge 1.21.11. Instead of treating enchanted books as disposable one-off items, it turns enchantments into a long-term resource you can extract, bank, upgrade, and reapply through a dedicated magical library block.
+Magic Library is a tiered enchantment storage and amplification mod for NeoForge 26.1. Instead of treating enchanted books as disposable one-off items, it turns enchantments into a long-term resource you can extract, bank, upgrade, and reapply through a dedicated magical library block.
 
 The mod is built around three library tiers:
 
@@ -198,9 +198,9 @@ After using it, the next Archmage Library opened by that player becomes a fully 
 
 ## Technical Target
 
-- Minecraft: `1.21.11`
-- Loader: `NeoForge 21.11.38-beta`
-- Java: `21`
+- Minecraft: `26.1.0`
+- Loader: `NeoForge 26.1.0.19-beta`
+- Java: `25`
 
 ## License
 

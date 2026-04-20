@@ -2,6 +2,7 @@ package com.acidglow.magiclibrary.client;
 
 import net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState;
 import net.minecraft.client.renderer.item.ItemStackRenderState;
+import net.minecraft.core.Direction;
 
 public final class MagicLibraryBlockEntityRenderState extends BlockEntityRenderState {
     public enum DisplayMode {
@@ -12,6 +13,7 @@ public final class MagicLibraryBlockEntityRenderState extends BlockEntityRenderS
 
     public final ItemStackRenderState displayItem = new ItemStackRenderState();
     public DisplayMode displayMode = DisplayMode.NONE;
+    public Direction facing = Direction.NORTH;
     public float animationTime;
     public float bookRotation;
     public float bookFlip;

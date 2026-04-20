@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.Set;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GlyphSource;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.font.glyphs.EffectGlyph;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -38,7 +38,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -249,9 +249,7 @@ public class MagicLibraryScreen extends AbstractContainerScreen<MagicLibraryMenu
     private AmplificationPopup amplificationPopup;
 
     public MagicLibraryScreen(MagicLibraryMenu menu, Inventory playerInventory, Component title) {
-        super(menu, playerInventory, title);
-        this.imageWidth = GUI_WIDTH;
-        this.imageHeight = GUI_HEIGHT;
+        super(menu, playerInventory, title, GUI_WIDTH, GUI_HEIGHT);
     }
 
     @Override
@@ -269,12 +267,12 @@ public class MagicLibraryScreen extends AbstractContainerScreen<MagicLibraryMenu
             Component.literal("Search")
         ) {
             @Override
-            public void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+            public void extractWidgetRenderState(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
                 guiGraphics.pose().pushMatrix();
                 guiGraphics.pose().translate(this.getX(), this.getY());
                 guiGraphics.pose().scale(ENCHANT_TEXT_SCALE, ENCHANT_TEXT_SCALE);
                 guiGraphics.pose().translate(-this.getX(), -this.getY());
-                super.renderWidget(guiGraphics, mouseX, mouseY, partialTick);
+                super.extractWidgetRenderState(guiGraphics, mouseX, mouseY, partialTick);
                 guiGraphics.pose().popMatrix();
             }
         };
@@ -310,7 +308,8 @@ public class MagicLibraryScreen extends AbstractContainerScreen<MagicLibraryMenu
     }
 
     @Override
-    protected void renderBg(GuiGraphics guiGraphics, float partialTick, int mouseX, int mouseY) {
+    public void extractBackground(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
+        super.extractBackground(guiGraphics, mouseX, mouseY, partialTick);
         guiGraphics.blit(
             RenderPipelines.GUI_TEXTURED,
             TEXTURE,
@@ -361,12 +360,11 @@ public class MagicLibraryScreen extends AbstractContainerScreen<MagicLibraryMenu
     }
 
     @Override
-    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        this.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
+    public void extractRenderState(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
         alignSearchBoxTextVertically();
         syncExtractionWarningPopupState();
         syncAmplificationPopupState();
-        super.render(guiGraphics, mouseX, mouseY, partialTick);
+        super.extractRenderState(guiGraphics, mouseX, mouseY, partialTick);
         renderDisabledUpkeepFuelGhost(guiGraphics);
         renderForegroundText(guiGraphics, mouseX, mouseY);
 
@@ -381,11 +379,10 @@ public class MagicLibraryScreen extends AbstractContainerScreen<MagicLibraryMenu
 
         renderDiscoveryPopup(guiGraphics);
         renderEnergyBarTooltip(guiGraphics, mouseX, mouseY);
-        this.renderTooltip(guiGraphics, mouseX, mouseY);
     }
 
     @Override
-    protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+    protected void extractLabels(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY) {
     }
 
     @Override
@@ -558,17 +555,17 @@ public class MagicLibraryScreen extends AbstractContainerScreen<MagicLibraryMenu
     }
 
     @Override
-    protected void slotClicked(@Nullable Slot slot, int slotId, int mouseButton, ClickType clickType) {
+    protected void slotClicked(@Nullable Slot slot, int slotId, int mouseButton, ContainerInput containerInput) {
         syncExtractionWarningPopupState();
         syncAmplificationPopupState();
         if (this.extractionWarningPopupOpen || this.amplificationPopup != null) {
             return;
         }
 
-        super.slotClicked(slot, slotId, mouseButton, clickType);
+        super.slotClicked(slot, slotId, mouseButton, containerInput);
     }
 
-    private void renderForegroundText(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+    private void renderForegroundText(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY) {
         Font guiFont = this.font;
         String tierLabel = getTierPanelLabel(this.menu.getTier());
         int tierPanelX = this.leftPos + TIER_TEXT_X;
@@ -579,7 +576,7 @@ public class MagicLibraryScreen extends AbstractContainerScreen<MagicLibraryMenu
         int tierTextY = tierPanelY + ((tierPanelHeight - guiFont.lineHeight) / 2);
         Component tierLabelComponent = toLibraryFontText(tierLabel);
         int tierLabelX = tierCenterX - (guiFont.width(tierLabelComponent) / 2);
-        guiGraphics.drawString(guiFont, tierLabelComponent, tierLabelX, tierTextY, TEXT_COLOR_WHITE, true);
+        guiGraphics.text(guiFont, tierLabelComponent, tierLabelX, tierTextY, TEXT_COLOR_WHITE, true);
 
         int listAbsX = this.leftPos + LIST_X;
         int listAbsY = this.topPos + LIST_Y;
@@ -599,7 +596,7 @@ public class MagicLibraryScreen extends AbstractContainerScreen<MagicLibraryMenu
             int emptyDrawY = Math.round(emptyActualY / ENCHANT_TEXT_SCALE);
             guiGraphics.pose().pushMatrix();
             guiGraphics.pose().scale(ENCHANT_TEXT_SCALE, ENCHANT_TEXT_SCALE);
-            guiGraphics.drawString(guiFont, emptyComponent, emptyDrawX, emptyDrawY, TEXT_COLOR_MUTED, true);
+            guiGraphics.text(guiFont, emptyComponent, emptyDrawX, emptyDrawY, TEXT_COLOR_MUTED, true);
             guiGraphics.pose().popMatrix();
             return;
         }
@@ -647,7 +644,7 @@ public class MagicLibraryScreen extends AbstractContainerScreen<MagicLibraryMenu
 
             guiGraphics.pose().pushMatrix();
             guiGraphics.pose().scale(ENCHANT_TEXT_SCALE, ENCHANT_TEXT_SCALE);
-            guiGraphics.drawString(guiFont, rowComponent, drawX, drawY, rowColor, true);
+            guiGraphics.text(guiFont, rowComponent, drawX, drawY, rowColor, true);
             guiGraphics.pose().popMatrix();
         }
 
@@ -663,7 +660,7 @@ public class MagicLibraryScreen extends AbstractContainerScreen<MagicLibraryMenu
         }
     }
 
-    private void renderRowTooltip(GuiGraphics guiGraphics, EnchantRow row, int mouseX, int mouseY) {
+    private void renderRowTooltip(GuiGraphicsExtractor guiGraphics, EnchantRow row, int mouseX, int mouseY) {
         List<Component> lines = new ArrayList<>();
         TooltipCostPreview preview = getTooltipCostPreview(row);
         String titleText = getHoverDisplayName(row, preview);
@@ -707,7 +704,7 @@ public class MagicLibraryScreen extends AbstractContainerScreen<MagicLibraryMenu
         guiGraphics.setComponentTooltipForNextFrame(this.font, lines, mouseX, mouseY);
     }
 
-    private void renderAmplificationTooltip(GuiGraphics guiGraphics, EnchantRow row, int mouseX, int mouseY) {
+    private void renderAmplificationTooltip(GuiGraphicsExtractor guiGraphics, EnchantRow row, int mouseX, int mouseY) {
         List<Component> lines = new ArrayList<>();
         Holder.Reference<Enchantment> holder = resolveEnchantment(row.enchantmentId());
         if (holder == null) {
@@ -1222,7 +1219,7 @@ public class MagicLibraryScreen extends AbstractContainerScreen<MagicLibraryMenu
         this.knownDiscoveredEnchantIds.addAll(stored.keySet());
     }
 
-    private void renderDiscoveryPopup(GuiGraphics guiGraphics) {
+    private void renderDiscoveryPopup(GuiGraphicsExtractor guiGraphics) {
         while (!this.discoveryPopups.isEmpty() && this.popupTickCounter - this.discoveryPopups.peekFirst().startTick() >= TOTAL_TICKS) {
             this.discoveryPopups.removeFirst();
         }
@@ -1271,18 +1268,18 @@ public class MagicLibraryScreen extends AbstractContainerScreen<MagicLibraryMenu
 
         Component titleComponent = toLibraryFontText(title);
         int titleX = centerX - (guiFont.width(titleComponent) / 2);
-        guiGraphics.drawString(guiFont, titleComponent, titleX, y, titleColor, true);
+        guiGraphics.text(guiFont, titleComponent, titleX, y, titleColor, true);
 
         int lineY = y + lineHeight + titleGap;
         for (String enchantName : enchantNames) {
             Component nameComponent = toLibraryFontText(enchantName);
             int drawX = centerX - (guiFont.width(nameComponent) / 2);
-            guiGraphics.drawString(guiFont, nameComponent, drawX, lineY, enchantColor, true);
+            guiGraphics.text(guiFont, nameComponent, drawX, lineY, enchantColor, true);
             lineY += lineHeight + nameGap;
         }
     }
 
-    private void renderExtractionWarningPopup(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+    private void renderExtractionWarningPopup(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY) {
         guiGraphics.fill(0, 0, this.width, this.height, MODAL_DIM_COLOR);
 
         int popupX = getExtractionWarningPopupX();
@@ -1306,15 +1303,15 @@ public class MagicLibraryScreen extends AbstractContainerScreen<MagicLibraryMenu
         Component line2Text = toLibraryFontText(line2);
         int centerX = popupX + (EXTRACTION_WARNING_WIDTH / 2);
 
-        guiGraphics.drawCenteredString(guiFont, titleText, centerX, popupY + 8, 0xFFFFE28A);
-        guiGraphics.drawCenteredString(guiFont, line1Text, centerX, popupY + 22, 0xFFFFFFFF);
-        guiGraphics.drawCenteredString(guiFont, line2Text, centerX, popupY + 32, 0xFFFFFFFF);
+        guiGraphics.centeredText(guiFont, titleText, centerX, popupY + 8, 0xFFFFE28A);
+        guiGraphics.centeredText(guiFont, line1Text, centerX, popupY + 22, 0xFFFFFFFF);
+        guiGraphics.centeredText(guiFont, line2Text, centerX, popupY + 32, 0xFFFFFFFF);
 
         renderExtractionWarningButton(guiGraphics, mouseX, mouseY, true);
         renderExtractionWarningButton(guiGraphics, mouseX, mouseY, false);
     }
 
-    private void renderAmplificationWarningPopup(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+    private void renderAmplificationWarningPopup(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY) {
         AmplificationPopup popup = this.amplificationPopup;
         if (popup == null) {
             return;
@@ -1344,15 +1341,15 @@ public class MagicLibraryScreen extends AbstractContainerScreen<MagicLibraryMenu
         Component line2Text = toLibraryFontText(line2);
         int centerX = popupX + (EXTRACTION_WARNING_WIDTH / 2);
 
-        guiGraphics.drawCenteredString(guiFont, titleText, centerX, popupY + 8, 0xFFFFE28A);
-        guiGraphics.drawCenteredString(guiFont, line1Text, centerX, popupY + 22, 0xFFFFFFFF);
-        guiGraphics.drawCenteredString(guiFont, line2Text, centerX, popupY + 32, 0xFFFFFFFF);
+        guiGraphics.centeredText(guiFont, titleText, centerX, popupY + 8, 0xFFFFE28A);
+        guiGraphics.centeredText(guiFont, line1Text, centerX, popupY + 22, 0xFFFFFFFF);
+        guiGraphics.centeredText(guiFont, line2Text, centerX, popupY + 32, 0xFFFFFFFF);
 
         renderExtractionWarningButton(guiGraphics, mouseX, mouseY, true);
         renderExtractionWarningButton(guiGraphics, mouseX, mouseY, false);
     }
 
-    private void renderExtractionWarningButton(GuiGraphics guiGraphics, int mouseX, int mouseY, boolean yesButton) {
+    private void renderExtractionWarningButton(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, boolean yesButton) {
         int buttonX = yesButton ? getExtractionWarningYesX() : getExtractionWarningNoX();
         int buttonY = getExtractionWarningButtonsY();
         int buttonRight = buttonX + EXTRACTION_WARNING_BUTTON_WIDTH;
@@ -1370,10 +1367,10 @@ public class MagicLibraryScreen extends AbstractContainerScreen<MagicLibraryMenu
         Component labelText = toLibraryFontText(label);
         int textY = buttonY + (EXTRACTION_WARNING_BUTTON_HEIGHT - this.font.lineHeight) / 2 + 1;
         int buttonCenterX = buttonX + (EXTRACTION_WARNING_BUTTON_WIDTH / 2);
-        guiGraphics.drawCenteredString(this.font, labelText, buttonCenterX, textY, 0xFFFFFFFF);
+        guiGraphics.centeredText(this.font, labelText, buttonCenterX, textY, 0xFFFFFFFF);
     }
 
-    private void drawSlotFrame(GuiGraphics guiGraphics, int slotIndex) {
+    private void drawSlotFrame(GuiGraphicsExtractor guiGraphics, int slotIndex) {
         if (slotIndex < 0 || slotIndex >= this.menu.slots.size()) {
             return;
         }
@@ -1388,7 +1385,7 @@ public class MagicLibraryScreen extends AbstractContainerScreen<MagicLibraryMenu
         );
     }
 
-    private void renderEnergyBar(GuiGraphics guiGraphics, int x, int y, long currentME, long maxME) {
+    private void renderEnergyBar(GuiGraphicsExtractor guiGraphics, int x, int y, long currentME, long maxME) {
         drawRoundedRect(guiGraphics, x, y, ME_BAR_WIDTH, ME_BAR_HEIGHT, ME_BAR_BACKGROUND);
 
         if (ME_BAR_HEIGHT >= 4) {
@@ -1459,7 +1456,7 @@ public class MagicLibraryScreen extends AbstractContainerScreen<MagicLibraryMenu
         }
     }
 
-    private void renderDisabledUpkeepFuelGhost(GuiGraphics guiGraphics) {
+    private void renderDisabledUpkeepFuelGhost(GuiGraphicsExtractor guiGraphics) {
         if (MagicLibraryConfig.isUpkeepEnabled() || MagicLibraryBlockEntity.SLOT_FUEL >= this.menu.slots.size()) {
             return;
         }
@@ -1472,10 +1469,10 @@ public class MagicLibraryScreen extends AbstractContainerScreen<MagicLibraryMenu
         int x = this.leftPos + fuelSlot.x;
         int y = this.topPos + fuelSlot.y;
         guiGraphics.fill(x, y, x + 16, y + 16, 0x88000000);
-        guiGraphics.renderFakeItem(new ItemStack(Items.NETHER_STAR), x, y);
+        guiGraphics.fakeItem(new ItemStack(Items.NETHER_STAR), x, y);
     }
 
-    private void drawRoundedRect(GuiGraphics guiGraphics, int x, int y, int width, int height, int color) {
+    private void drawRoundedRect(GuiGraphicsExtractor guiGraphics, int x, int y, int width, int height, int color) {
         if (width <= 0 || height <= 0) {
             return;
         }
@@ -1489,7 +1486,7 @@ public class MagicLibraryScreen extends AbstractContainerScreen<MagicLibraryMenu
     }
 
     private void drawRoundedGradient(
-        GuiGraphics guiGraphics,
+        GuiGraphicsExtractor guiGraphics,
         int x,
         int y,
         int width,
@@ -1509,7 +1506,7 @@ public class MagicLibraryScreen extends AbstractContainerScreen<MagicLibraryMenu
         guiGraphics.fillGradient(x, y + 1, x + width, y + height - 1, startColor, endColor);
     }
 
-    private void drawFrame(GuiGraphics guiGraphics, int x, int y, int width, int height, int color) {
+    private void drawFrame(GuiGraphicsExtractor guiGraphics, int x, int y, int width, int height, int color) {
         if (width <= 0 || height <= 0) {
             return;
         }
@@ -1653,7 +1650,7 @@ public class MagicLibraryScreen extends AbstractContainerScreen<MagicLibraryMenu
             && mouseY < this.topPos + ME_BAR_Y + ME_BAR_HEIGHT;
     }
 
-    private void renderEnergyBarTooltip(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+    private void renderEnergyBarTooltip(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY) {
         if (!isMouseOverEnergyBar(mouseX, mouseY)) {
             return;
         }

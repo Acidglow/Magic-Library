@@ -6,6 +6,7 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.ItemInstance;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.EnchantedItemInUse;
 import net.minecraft.world.item.enchantment.Enchantment;
@@ -22,8 +23,9 @@ public abstract class EnchantmentHelperMixin {
      */
     @Overwrite
     @Deprecated
-    public static int getItemEnchantmentLevel(Holder<Enchantment> enchantment, ItemStack stack) {
-        int rawLevel = stack.getEnchantmentLevel(enchantment);
+    public static int getItemEnchantmentLevel(Holder<Enchantment> enchantment, ItemInstance piece) {
+        ItemEnchantments enchantments = piece.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
+        int rawLevel = enchantments.getLevel(enchantment);
         return MagicLibraryEnchantScaling.getEffectiveGameplayLevel(enchantment, rawLevel);
     }
 

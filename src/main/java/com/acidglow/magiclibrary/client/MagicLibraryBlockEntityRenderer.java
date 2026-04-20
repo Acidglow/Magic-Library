@@ -9,19 +9,18 @@ import it.unimi.dsi.fastutil.HashCommon;
 import net.minecraft.client.model.geom.ModelLayers;
 import net.minecraft.client.model.object.book.BookModel;
 import net.minecraft.client.renderer.LevelRenderer;
-import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.blockentity.EnchantTableRenderer;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.client.renderer.feature.ModelFeatureRenderer;
 import net.minecraft.client.renderer.item.ItemModelResolver;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
-import net.minecraft.client.renderer.state.CameraRenderState;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.client.resources.model.MaterialSet;
+import net.minecraft.client.resources.model.sprite.SpriteGetter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.util.LightCoordsUtil;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.AxeItem;
 import net.minecraft.world.item.BowItem;
@@ -97,12 +96,12 @@ public final class MagicLibraryBlockEntityRenderer
     private static final float BOOK_STATIC_OPEN = 0.9F;
     private static final double RENDER_HEIGHT = 2.25D;
 
-    private final MaterialSet materials;
+    private final SpriteGetter sprites;
     private final BookModel bookModel;
     private final ItemModelResolver itemModelResolver;
 
     public MagicLibraryBlockEntityRenderer(BlockEntityRendererProvider.Context context) {
-        this.materials = context.materials();
+        this.sprites = context.sprites();
         this.bookModel = new BookModel(context.bakeLayer(ModelLayers.BOOK));
         this.itemModelResolver = context.itemModelResolver();
     }
@@ -123,6 +122,7 @@ public final class MagicLibraryBlockEntityRenderer
         BlockEntityRenderer.super.extractRenderState(blockEntity, renderState, partialTick, cameraPosition, crumblingOverlay);
         renderState.displayItem.clear();
         renderState.displayMode = MagicLibraryBlockEntityRenderState.DisplayMode.NONE;
+        renderState.facing = getFacing(blockEntity.getBlockState());
         renderState.animationTime = getAnimationTime(blockEntity, partialTick);
         renderState.bookRotation = 0.0F;
         renderState.bookFlip = 0.0F;
@@ -185,7 +185,7 @@ public final class MagicLibraryBlockEntityRenderer
         PoseStack poseStack,
         SubmitNodeCollector submitNodeCollector
     ) {
-        Direction facing = getFacing(renderState.blockState);
+        Direction facing = renderState.facing;
         float hoverOffset = getHoverOffset(renderState.animationTime);
         float rotationDegrees = renderState.animationTime * renderState.displayRotationSpeedDegrees;
         double centeredOffsetX = renderState.displayOffsetX - 0.5D;
@@ -208,7 +208,7 @@ public final class MagicLibraryBlockEntityRenderer
         PoseStack poseStack,
         SubmitNodeCollector submitNodeCollector
     ) {
-        Direction facing = getFacing(renderState.blockState);
+        Direction facing = renderState.facing;
 
         poseStack.pushPose();
         poseStack.translate(0.5F, BOOK_BASE_HEIGHT + BOOK_HOVER_BASE + getBookHoverOffset(renderState.animationTime), 0.5F);
@@ -218,17 +218,17 @@ public final class MagicLibraryBlockEntityRenderer
 
         float pageFlip1 = Mth.clamp(Mth.frac(renderState.bookFlip + 0.25F) * 1.6F - 0.3F, 0.0F, 1.0F);
         float pageFlip2 = Mth.clamp(Mth.frac(renderState.bookFlip + 0.75F) * 1.6F - 0.3F, 0.0F, 1.0F);
-        BookModel.State bookState = new BookModel.State(renderState.animationTime, pageFlip1, pageFlip2, renderState.bookOpen);
+        BookModel.State bookState = BookModel.State.forAnimation(renderState.animationTime, pageFlip1, pageFlip2, renderState.bookOpen);
 
         submitNodeCollector.submitModel(
             this.bookModel,
             bookState,
             poseStack,
-            EnchantTableRenderer.BOOK_TEXTURE.renderType(RenderTypes::entitySolid),
             renderState.lightCoords,
             OverlayTexture.NO_OVERLAY,
             -1,
-            this.materials.get(EnchantTableRenderer.BOOK_TEXTURE),
+            EnchantTableRenderer.BOOK_TEXTURE,
+            this.sprites,
             0,
             renderState.breakProgress
         );
@@ -389,11 +389,11 @@ public final class MagicLibraryBlockEntityRenderer
     }
 
     private static int getDisplayLight(BlockPos blockPos, net.minecraft.world.level.Level level) {
-        int baseLight = LevelRenderer.getLightColor(level, blockPos);
-        int displayLight = LevelRenderer.getLightColor(level, blockPos.above());
-        return LightTexture.pack(
-            Math.max(LightTexture.block(baseLight), LightTexture.block(displayLight)),
-            Math.max(LightTexture.sky(baseLight), LightTexture.sky(displayLight))
+        int baseLight = LevelRenderer.getLightCoords(level, blockPos);
+        int displayLight = LevelRenderer.getLightCoords(level, blockPos.above());
+        return LightCoordsUtil.pack(
+            Math.max(LightCoordsUtil.block(baseLight), LightCoordsUtil.block(displayLight)),
+            Math.max(LightCoordsUtil.sky(baseLight), LightCoordsUtil.sky(displayLight))
         );
     }
 }

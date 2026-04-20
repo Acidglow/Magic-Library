@@ -15,6 +15,7 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.Enchantment;
@@ -67,22 +68,6 @@ public final class EnchantCapConfigLoader {
 
     private static final Path CONFIG_DIRECTORY = FMLPaths.CONFIGDIR.get().resolve(MagicLibrary.MODID);
     private static final Path ENCHANT_CAPS_FILE = CONFIG_DIRECTORY.resolve("enchant_caps.toml");
-
-    private static final ItemStack SAMPLE_HELMET = new ItemStack(Items.DIAMOND_HELMET);
-    private static final ItemStack SAMPLE_CHESTPLATE = new ItemStack(Items.DIAMOND_CHESTPLATE);
-    private static final ItemStack SAMPLE_LEGGINGS = new ItemStack(Items.DIAMOND_LEGGINGS);
-    private static final ItemStack SAMPLE_BOOTS = new ItemStack(Items.DIAMOND_BOOTS);
-    private static final ItemStack SAMPLE_ELYTRA = new ItemStack(Items.ELYTRA);
-    private static final ItemStack SAMPLE_SHIELD = new ItemStack(Items.SHIELD);
-    private static final ItemStack SAMPLE_SWORD = new ItemStack(Items.DIAMOND_SWORD);
-    private static final ItemStack SAMPLE_AXE = new ItemStack(Items.DIAMOND_AXE);
-    private static final ItemStack SAMPLE_PICKAXE = new ItemStack(Items.DIAMOND_PICKAXE);
-    private static final ItemStack SAMPLE_SHOVEL = new ItemStack(Items.DIAMOND_SHOVEL);
-    private static final ItemStack SAMPLE_HOE = new ItemStack(Items.DIAMOND_HOE);
-    private static final ItemStack SAMPLE_BOW = new ItemStack(Items.BOW);
-    private static final ItemStack SAMPLE_CROSSBOW = new ItemStack(Items.CROSSBOW);
-    private static final ItemStack SAMPLE_TRIDENT = new ItemStack(Items.TRIDENT);
-    private static final ItemStack SAMPLE_FISHING_ROD = new ItemStack(Items.FISHING_ROD);
 
     private static Map<Identifier, EnchantCapRule> cachedEnchantCaps = Map.of();
 
@@ -284,9 +269,9 @@ public final class EnchantCapConfigLoader {
         boolean tool = appliesToTools(enchantment);
         boolean armor = appliesToArmor(enchantment);
         boolean ranged = appliesToRanged(enchantment);
-        boolean fishing = enchantment.value().canEnchant(SAMPLE_FISHING_ROD);
-        boolean movement = enchantment.value().canEnchant(SAMPLE_ELYTRA);
-        boolean shield = enchantment.value().canEnchant(SAMPLE_SHIELD);
+        boolean fishing = canEnchant(enchantment, Items.FISHING_ROD);
+        boolean movement = canEnchant(enchantment, Items.ELYTRA);
+        boolean shield = canEnchant(enchantment, Items.SHIELD);
 
         int groupCount = countTrue(weapon, tool, armor, ranged, fishing, movement, shield);
         if (groupCount == 0) {
@@ -469,34 +454,38 @@ public final class EnchantCapConfigLoader {
     }
 
     private static boolean appliesToArmor(Holder.Reference<Enchantment> enchantment) {
-        return enchantment.value().canEnchant(SAMPLE_HELMET)
-            || enchantment.value().canEnchant(SAMPLE_CHESTPLATE)
-            || enchantment.value().canEnchant(SAMPLE_LEGGINGS)
-            || enchantment.value().canEnchant(SAMPLE_BOOTS);
+        return canEnchant(enchantment, Items.DIAMOND_HELMET)
+            || canEnchant(enchantment, Items.DIAMOND_CHESTPLATE)
+            || canEnchant(enchantment, Items.DIAMOND_LEGGINGS)
+            || canEnchant(enchantment, Items.DIAMOND_BOOTS);
     }
 
     private static boolean appliesToMovementItems(Holder.Reference<Enchantment> enchantment) {
-        return enchantment.value().canEnchant(SAMPLE_BOOTS)
-            || enchantment.value().canEnchant(SAMPLE_ELYTRA)
+        return canEnchant(enchantment, Items.DIAMOND_BOOTS)
+            || canEnchant(enchantment, Items.ELYTRA)
             || appliesToArmor(enchantment);
     }
 
     private static boolean appliesToWeapons(Holder.Reference<Enchantment> enchantment) {
-        return enchantment.value().canEnchant(SAMPLE_SWORD)
-            || enchantment.value().canEnchant(SAMPLE_AXE)
-            || enchantment.value().canEnchant(SAMPLE_TRIDENT);
+        return canEnchant(enchantment, Items.DIAMOND_SWORD)
+            || canEnchant(enchantment, Items.DIAMOND_AXE)
+            || canEnchant(enchantment, Items.TRIDENT);
     }
 
     private static boolean appliesToTools(Holder.Reference<Enchantment> enchantment) {
-        return enchantment.value().canEnchant(SAMPLE_PICKAXE)
-            || enchantment.value().canEnchant(SAMPLE_SHOVEL)
-            || enchantment.value().canEnchant(SAMPLE_HOE);
+        return canEnchant(enchantment, Items.DIAMOND_PICKAXE)
+            || canEnchant(enchantment, Items.DIAMOND_SHOVEL)
+            || canEnchant(enchantment, Items.DIAMOND_HOE);
     }
 
     private static boolean appliesToRanged(Holder.Reference<Enchantment> enchantment) {
-        return enchantment.value().canEnchant(SAMPLE_BOW)
-            || enchantment.value().canEnchant(SAMPLE_CROSSBOW)
-            || enchantment.value().canEnchant(SAMPLE_TRIDENT);
+        return canEnchant(enchantment, Items.BOW)
+            || canEnchant(enchantment, Items.CROSSBOW)
+            || canEnchant(enchantment, Items.TRIDENT);
+    }
+
+    private static boolean canEnchant(Holder.Reference<Enchantment> enchantment, Item item) {
+        return enchantment.value().canEnchant(new ItemStack(item));
     }
 
     private static boolean containsKeyword(String value, String... keywords) {
