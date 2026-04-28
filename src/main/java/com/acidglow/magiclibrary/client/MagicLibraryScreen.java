@@ -139,6 +139,7 @@ public class MagicLibraryScreen extends AbstractContainerScreen<MagicLibraryMenu
     private static final int TEXT_COLOR_DORMANT = 0xFFA0A0A0;
     private static final int TEXT_COLOR_AMPLIFICATION_READY = 0xFFFFC86A;
     private static final int TEXT_COLOR_AMPLIFICATION_BLOCKED = 0xFF8D7A54;
+    private static final int TEXT_COLOR_OUTLINE = 0xFF000000;
     private static final int TOOLTIP_UNAFFORDABLE_COLOR = 0xFFFF5555;
     private static final int TOOLTIP_MAX_LEVEL_COLOR = 0xFF63F4FF;
     private static final int FRAME_COLOR = 0xFFFFFFFF;
@@ -647,7 +648,7 @@ public class MagicLibraryScreen extends AbstractContainerScreen<MagicLibraryMenu
 
             guiGraphics.pose().pushMatrix();
             guiGraphics.pose().scale(ENCHANT_TEXT_SCALE, ENCHANT_TEXT_SCALE);
-            guiGraphics.drawString(guiFont, rowComponent, drawX, drawY, rowColor, true);
+            drawOutlinedEnchantListText(guiGraphics, guiFont, rowComponent, drawX, drawY, rowColor);
             guiGraphics.pose().popMatrix();
         }
 
@@ -1928,6 +1929,25 @@ public class MagicLibraryScreen extends AbstractContainerScreen<MagicLibraryMenu
             return Component.literal(text);
         }
         return Component.literal(text).withStyle(style -> style.withFont(LIBRARY_FONT));
+    }
+
+    private void drawOutlinedEnchantListText(
+        GuiGraphics guiGraphics,
+        Font font,
+        Component text,
+        int x,
+        int y,
+        int color
+    ) {
+        for (int offsetX = -1; offsetX <= 1; offsetX++) {
+            for (int offsetY = -1; offsetY <= 1; offsetY++) {
+                if (offsetX == 0 && offsetY == 0) {
+                    continue;
+                }
+                guiGraphics.drawString(font, text, x + offsetX, y + offsetY, TEXT_COLOR_OUTLINE, false);
+            }
+        }
+        guiGraphics.drawString(font, text, x, y, color, false);
     }
 
     private Font createLibrarySearchFont() {
