@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.core.registries.Registries;
@@ -590,9 +591,10 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
     }
 
     private void serverTick() {
+        boolean purgedUnavailableEnchants = purgeUnavailableEnchantReferences();
         validatePendingOutputState(false);
 
-        boolean changed = false;
+        boolean changed = purgedUnavailableEnchants;
 
         int upkeepTenths = getCurrentUpkeepTenthsPerTick();
         boolean activeThisTick = !requiresFuelForUpkeep();
@@ -623,7 +625,11 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
         }
 
         if (changed) {
-            setChanged();
+            if (purgedUnavailableEnchants) {
+                markChangedAndSync();
+            } else {
+                setChanged();
+            }
         }
     }
 
@@ -1558,6 +1564,42 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
         return scaled >= Long.MAX_VALUE ? Long.MAX_VALUE : (long) scaled;
     }
 
+    private boolean purgeUnavailableEnchantReferences() {
+        if (this.level == null || this.level.isClientSide()) {
+            return false;
+        }
+
+        HolderLookup.RegistryLookup<Enchantment> enchantLookup = this.level.registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
+        boolean storedChanged = purgeUnavailableEnchantEntries(this.storedEnchantData, enchantLookup);
+        boolean preparedChanged = purgeUnavailableEnchantEntries(this.preparedEnchantLevels, enchantLookup);
+        boolean outputChanged = purgeUnavailableEnchantEntries(this.outputOriginalEnchantLevels, enchantLookup);
+        boolean amplifiedChanged = purgeUnavailableEnchantEntries(this.amplifiedMaxLevels, enchantLookup);
+        boolean changed = storedChanged || preparedChanged || outputChanged || amplifiedChanged;
+
+        if (preparedChanged || outputChanged) {
+            invalidatePendingEnchantingState(false);
+        }
+
+        return changed;
+    }
+
+    private static boolean purgeUnavailableEnchantEntries(
+        Map<Identifier, ?> enchantData,
+        HolderLookup.RegistryLookup<Enchantment> enchantLookup
+    ) {
+        boolean changed = false;
+        Iterator<Identifier> iterator = enchantData.keySet().iterator();
+        while (iterator.hasNext()) {
+            Identifier enchantmentId = iterator.next();
+            ResourceKey<Enchantment> key = ResourceKey.create(Registries.ENCHANTMENT, enchantmentId);
+            if (enchantLookup.get(key).isEmpty()) {
+                iterator.remove();
+                changed = true;
+            }
+        }
+        return changed;
+    }
+
     private static long saturatingAdd(long a, long b) {
         long result = a + b;
         if (((a ^ result) & (b ^ result)) < 0) {
@@ -1603,6 +1645,9 @@ public class MagicLibraryBlockEntity extends BlockEntity implements MenuProvider
 
     @Override
     public AbstractContainerMenu createMenu(int containerId, Inventory playerInventory, Player player) {
+        if (purgeUnavailableEnchantReferences()) {
+            markChangedAndSync();
+        }
         return new MagicLibraryMenu(containerId, playerInventory, this);
     }
 
